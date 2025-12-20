@@ -14,5 +14,10 @@ func main() {
 
 	input, err := reader.ReadString('\n')
 
+	if(err != nil){
+		fmt.Println("Error reading command:", err)
+		return
+	}
+
 	fmt.Print(input[:len(input) - 1] + ": command not found")
 }
