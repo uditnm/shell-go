@@ -57,21 +57,11 @@ func checkExecutable(input string) string {
 	for _, dir := range paths {
 		fullPath := filepath.Join(dir, input)
 
-		_, err := os.Stat(fullPath)
-		if err == nil && isExecutable(fullPath) {
+		info, err := os.Stat(fullPath)
+		if err == nil && info.Mode()&0111 != 0 {
 			return input + " is " + fullPath
 		}
 	}
 
 	return input + ": not found"
-}
-
-func isExecutable(path string) bool {
-	ext := strings.ToLower(filepath.Ext(path))
-	switch ext {
-	case ".exe", ".bat", ".cmd", ".com":
-		return true
-	default:
-		return false
-	}
 }
