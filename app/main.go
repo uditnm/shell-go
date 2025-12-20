@@ -52,7 +52,7 @@ func main() {
 
 			execErr := cmd.Run()
 			if execErr != nil {
-				if _, ok := err.(*exec.ExitError); !ok {
+				if _, ok := execErr.(*exec.ExitError); !ok {
 					fmt.Println("Execution error: ", execErr)
 				}
 			}
