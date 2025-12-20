@@ -4,16 +4,15 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 )
 
 var _ = fmt.Print
-
 var commands = []string{"exit", "echo", "type"}
 
 func main() {
-
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
@@ -47,7 +46,32 @@ func main() {
 func checkCommand(input string) string {
 	if slices.Contains(commands, input) {
 		return input + " is a shell builtin"
-	} else {
-		return input + ": not found"
+	}
+	return checkExecutable(input)
+}
+
+func checkExecutable(input string) string {
+	pathEnv := os.Getenv("PATH")
+	paths := strings.Split(pathEnv, string(os.PathListSeparator))
+
+	for _, dir := range paths {
+		fullPath := filepath.Join(dir, input)
+
+		_, err := os.Stat(fullPath)
+		if err == nil && isExecutable(fullPath) {
+			return input + " is " + fullPath
+		}
+	}
+
+	return input + ": not found"
+}
+
+func isExecutable(path string) bool {
+	ext := strings.ToLower(filepath.Ext(path))
+	switch ext {
+	case ".exe", ".bat", ".cmd", ".com":
+		return true
+	default:
+		return false
 	}
 }
