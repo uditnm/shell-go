@@ -23,10 +23,17 @@ func main() {
 		}
 
 		input = strings.TrimSpace(input)
-		if input == "exit" {
-			return
-		}
 
-		fmt.Println(input + ": command not found")
+		parts := strings.Fields(input)
+
+		switch parts[0] {
+		case "exit":
+			return
+		case "echo":
+			// Implement echo command
+			fmt.Println(strings.Join(parts[1:], " "))
+		default:
+			fmt.Println(input + ": command not found")
+		}
 	}
 }
