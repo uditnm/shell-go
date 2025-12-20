@@ -38,10 +38,23 @@ func main() {
 			output := checkCommand(parts[1])
 			fmt.Println(output)
 		default:
-			cmd := exec.Command(parts[0], parts[1:]...)
-			err := cmd.Run()
+			_, err := exec.LookPath(parts[0])
 			if err != nil {
-				fmt.Println(input + ": command not found")
+				fmt.Println(parts[0] + ": command not found")
+				continue
+			}
+
+			cmd := exec.Command(parts[0], parts[1:]...)
+			cmd.Args = parts
+			cmd.Stdout = os.Stdout
+			cmd.Stdin = os.Stdin
+			cmd.Stderr = os.Stderr
+
+			execErr := cmd.Run()
+			if execErr != nil {
+				if _, ok := err.(*exec.ExitError); !ok {
+					fmt.Println("Execution error: ", execErr)
+				}
 			}
 		}
 	}
