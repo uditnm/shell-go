@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"path/filepath"
+	"os/exec"
 	"slices"
 	"strings"
 )
@@ -51,16 +51,9 @@ func checkCommand(input string) string {
 }
 
 func checkExecutable(input string) string {
-	pathEnv := os.Getenv("PATH")
-	paths := strings.Split(pathEnv, string(os.PathListSeparator))
-
-	for _, dir := range paths {
-		fullPath := filepath.Join(dir, input)
-
-		info, err := os.Stat(fullPath)
-		if err == nil && info.Mode()&0111 != 0 {
-			return input + " is " + fullPath
-		}
+	path, err := exec.LookPath(input)
+	if err == nil {
+		return input + " is " + path
 	}
 
 	return input + ": not found"
