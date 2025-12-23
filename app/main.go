@@ -10,7 +10,7 @@ import (
 )
 
 var _ = fmt.Print
-var commands = []string{"exit", "echo", "type"}
+var commands = []string{"exit", "echo", "type", "pwd"}
 
 func main() {
 	reader := bufio.NewReader(os.Stdin)
@@ -37,6 +37,8 @@ func main() {
 		case "type":
 			output := checkCommand(parts[1])
 			fmt.Println(output)
+		case "pwd":
+			fmt.Println(GetPresentWorkingDirectory())
 		default:
 			_, err := exec.LookPath(parts[0])
 			if err != nil {
@@ -58,6 +60,15 @@ func main() {
 			}
 		}
 	}
+}
+
+func GetPresentWorkingDirectory() string {
+	path, err := os.Getwd()
+	if err != nil {
+		return err.Error()
+	}
+
+	return path
 }
 
 func checkCommand(input string) string {
