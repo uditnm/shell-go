@@ -10,7 +10,7 @@ import (
 )
 
 var _ = fmt.Print
-var commands = []string{"exit", "echo", "type", "pwd"}
+var commands = []string{"exit", "echo", "type", "pwd", "cd"}
 
 func main() {
 	reader := bufio.NewReader(os.Stdin)
@@ -38,7 +38,9 @@ func main() {
 			output := checkCommand(parts[1])
 			fmt.Println(output)
 		case "pwd":
-			fmt.Println(GetPresentWorkingDirectory())
+			getPresentWorkingDirectory()
+		case "cd":
+			changeDirectory(parts[1])
 		default:
 			_, err := exec.LookPath(parts[0])
 			if err != nil {
@@ -62,13 +64,20 @@ func main() {
 	}
 }
 
-func GetPresentWorkingDirectory() string {
+func getPresentWorkingDirectory() {
 	path, err := os.Getwd()
 	if err != nil {
-		return err.Error()
+		fmt.Println(err.Error())
 	}
 
-	return path
+	fmt.Println(path)
+}
+
+func changeDirectory(path string) {
+	err := os.Chdir(path)
+	if err != nil {
+		fmt.Println(path + ": No such file or directory")
+	}
 }
 
 func checkCommand(input string) string {
