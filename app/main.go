@@ -79,9 +79,17 @@ func getTokens(input string) ([]string, error) {
 
 		switch char {
 		case '\'':
-			singleQuote = !singleQuote
+			if !doubleQuote {
+				singleQuote = !singleQuote
+			} else {
+				currentString.WriteByte(char)
+			}
 		case '"':
-			doubleQuote = !doubleQuote
+			if !singleQuote {
+				doubleQuote = !doubleQuote
+			} else {
+				currentString.WriteByte(char)
+			}
 		case ' ':
 			if singleQuote || doubleQuote {
 				currentString.WriteByte(char)
