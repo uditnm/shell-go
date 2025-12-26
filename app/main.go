@@ -25,7 +25,12 @@ func main() {
 
 		input = strings.TrimSpace(input)
 
-		parts := strings.Fields(input)
+		parts, quoteErr := getTokens(input)
+
+		if quoteErr != nil {
+			fmt.Println("Error reading command:", quoteErr)
+			continue
+		}
 
 		switch parts[0] {
 		case Exit:
@@ -60,6 +65,41 @@ func main() {
 			}
 		}
 	}
+}
+
+func getTokens(input string) ([]string, error) {
+	var tokens []string
+	var currentString strings.Builder
+
+	singleQuote := false
+
+	for i := 0; i < len(input); i++ {
+		char := input[i]
+
+		switch char {
+		case '\'':
+			singleQuote = !singleQuote
+		case ' ':
+			if singleQuote {
+				currentString.WriteByte(char)
+			} else if currentString.Len() > 0 {
+				tokens = append(tokens, currentString.String())
+				currentString.Reset()
+			}
+		default:
+			currentString.WriteByte(char)
+		}
+	}
+
+	if currentString.Len() > 0 {
+		tokens = append(tokens, currentString.String())
+	}
+
+	if singleQuote {
+		return nil, fmt.Errorf("unclosed quote")
+	}
+
+	return tokens, nil
 }
 
 func getPresentWorkingDirectory() {
