@@ -72,6 +72,7 @@ func getTokens(input string) ([]string, error) {
 	var currentString strings.Builder
 
 	singleQuote := false
+	doubleQuote := false
 
 	for i := 0; i < len(input); i++ {
 		char := input[i]
@@ -79,8 +80,10 @@ func getTokens(input string) ([]string, error) {
 		switch char {
 		case '\'':
 			singleQuote = !singleQuote
+		case '"':
+			doubleQuote = !doubleQuote
 		case ' ':
-			if singleQuote {
+			if singleQuote || doubleQuote {
 				currentString.WriteByte(char)
 			} else if currentString.Len() > 0 {
 				tokens = append(tokens, currentString.String())
@@ -95,7 +98,7 @@ func getTokens(input string) ([]string, error) {
 		tokens = append(tokens, currentString.String())
 	}
 
-	if singleQuote {
+	if singleQuote || doubleQuote {
 		return nil, fmt.Errorf("unclosed quote")
 	}
 
