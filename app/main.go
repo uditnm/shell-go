@@ -73,9 +73,16 @@ func getTokens(input string) ([]string, error) {
 
 	singleQuote := false
 	doubleQuote := false
+	isBackSlash := false
 
 	for i := 0; i < len(input); i++ {
 		char := input[i]
+
+		if isBackSlash {
+			currentString.WriteByte(char)
+			isBackSlash = !isBackSlash
+			continue
+		}
 
 		switch char {
 		case '\'':
@@ -87,6 +94,12 @@ func getTokens(input string) ([]string, error) {
 		case '"':
 			if !singleQuote {
 				doubleQuote = !doubleQuote
+			} else {
+				currentString.WriteByte(char)
+			}
+		case '\\':
+			if !singleQuote || !doubleQuote {
+				isBackSlash = !isBackSlash
 			} else {
 				currentString.WriteByte(char)
 			}
@@ -106,8 +119,8 @@ func getTokens(input string) ([]string, error) {
 		tokens = append(tokens, currentString.String())
 	}
 
-	if singleQuote || doubleQuote {
-		return nil, fmt.Errorf("unclosed quote")
+	if singleQuote || doubleQuote || isBackSlash {
+		return nil, fmt.Errorf("invalid input")
 	}
 
 	return tokens, nil
