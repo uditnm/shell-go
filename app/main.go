@@ -99,6 +99,10 @@ func getTokens(input string) ([]string, error) {
 			}
 		case '\\':
 			if singleQuote || doubleQuote {
+				if i < len(input)-1 && (input[i+1] == '"' || input[i+1] == '\\') {
+					isBackSlash = !isBackSlash
+					continue
+				}
 				currentString.WriteByte(char)
 			} else {
 				isBackSlash = !isBackSlash
