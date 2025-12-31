@@ -128,11 +128,14 @@ func writeOutput(fileName string, output string, errOutput string, redirectStdEr
 
 	if redirectStdError {
 		write(errOutput, fileName)
-		write(output, "")
-
+		if output != "" {
+			fmt.Println(output)
+		}
 	} else {
 		write(output, fileName)
-		write(errOutput, "")
+		if errOutput != "" {
+			fmt.Println(errOutput)
+		}
 	}
 }
 
