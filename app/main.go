@@ -32,16 +32,35 @@ func main() {
 			continue
 		}
 
+		fileName := ""
+		lastIdx := -1
+		for i := 1; i < len(parts); i++ {
+			if parts[i] == ">" || parts[i] == "1>" {
+				if i+1 >= len(parts) {
+					fmt.Println("Error: No file given")
+				}
+
+				lastIdx = i
+				fileName = strings.Join(parts[(i+1):], " ")
+				break
+			}
+		}
+
+		if lastIdx != -1 {
+			parts = parts[:lastIdx]
+		}
+
+		output := ""
+
 		switch parts[0] {
 		case Exit:
 			return
 		case Echo:
-			fmt.Println(strings.Join(parts[1:], " "))
+			output = strings.Join(parts[1:], " ")
 		case Type:
-			output := checkCommand(parts[1])
-			fmt.Println(output)
+			output = checkCommand(parts[1])
 		case Pwd:
-			getPresentWorkingDirectory()
+			output = getPresentWorkingDirectory()
 		case Cd:
 			changeDirectory(parts[1])
 		default:
@@ -53,9 +72,25 @@ func main() {
 
 			cmd := exec.Command(parts[0], parts[1:]...)
 			cmd.Args = parts
-			cmd.Stdout = os.Stdout
 			cmd.Stdin = os.Stdin
 			cmd.Stderr = os.Stderr
+
+			if fileName == "" {
+				cmd.Stdout = os.Stdout
+			} else {
+				outFile, err := os.OpenFile(
+					fileName,
+					os.O_CREATE|os.O_WRONLY|os.O_TRUNC,
+					0644,
+				)
+				if err != nil {
+					fmt.Println("failed to open output file: ", err)
+					continue
+				}
+				defer outFile.Close()
+
+				cmd.Stdout = outFile
+			}
 
 			execErr := cmd.Run()
 			if execErr != nil {
@@ -63,6 +98,25 @@ func main() {
 					fmt.Println("Execution error: ", execErr)
 				}
 			}
+
+			continue
+		}
+
+		writeOutput(fileName, output)
+	}
+}
+
+func writeOutput(fileName string, output string) {
+	if output == "" {
+		return
+	}
+
+	if fileName == "" {
+		fmt.Println(output)
+	} else {
+		err := os.WriteFile(fileName, []byte(output), 0644)
+		if err != nil {
+			fmt.Println(err)
 		}
 	}
 }
@@ -132,13 +186,14 @@ func getTokens(input string) ([]string, error) {
 	return tokens, nil
 }
 
-func getPresentWorkingDirectory() {
+func getPresentWorkingDirectory() string {
 	path, err := os.Getwd()
 	if err != nil {
 		fmt.Println(err.Error())
+		return ""
 	}
 
-	fmt.Println(path)
+	return path
 }
 
 func changeDirectory(path string) {
@@ -157,14 +212,12 @@ func checkCommand(input string) string {
 	if slices.Contains(commands, input) {
 		return input + " is a shell builtin"
 	}
-	return checkExecutable(input)
-}
 
-func checkExecutable(input string) string {
 	path, err := exec.LookPath(input)
 	if err == nil {
 		return input + " is " + path
 	}
 
-	return input + ": not found"
+	fmt.Println(input + ": not found")
+	return ""
 }
