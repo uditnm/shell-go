@@ -99,7 +99,7 @@ mainloop:
 		}
 
 		writeOutput(fileName, output, errOutput, redirectStdError)
-		fmt.Print("\n$ ")
+		fmt.Print("$ ")
 	}
 }
 
@@ -120,9 +120,11 @@ func writeOutput(fileName string, output string, errOutput string, redirectStdEr
 		}
 	}
 
-	if (!strings.HasSuffix(output, "\n") && !strings.HasSuffix(errOutput, "\n") && fileName == "") || (output == "" && errOutput == "") {
-		fmt.Println()
+	if strings.HasSuffix(output, "\n") || strings.HasSuffix(errOutput, "\n") {
+		return
 	}
+
+	fmt.Println()
 }
 
 func write(data string, fileName string) {
