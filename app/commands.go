@@ -1,12 +1,15 @@
 package main
 
 const (
-	Exit          = "exit"
-	Echo          = "echo"
-	Type          = "type"
-	Pwd           = "pwd"
-	Cd            = "cd"
-	HomeDirectory = "~"
+	Exit             = "exit"
+	Echo             = "echo"
+	Type             = "type"
+	Pwd              = "pwd"
+	Cd               = "cd"
+	HomeDirectory    = "~"
+	Redirect         = ">"
+	ErrorRedirect    = "2>"
+	StandardRedirect = "1>"
 )
 
 var commands = []string{Exit, Echo, Type, Pwd, Cd}

@@ -34,11 +34,14 @@ func main() {
 
 		fileName := ""
 		lastIdx := -1
+		redirectStdError := false
 		for i := 1; i < len(parts); i++ {
-			if parts[i] == ">" || parts[i] == "1>" {
+			if parts[i] == Redirect || parts[i] == StandardRedirect || parts[i] == ErrorRedirect {
 				if i+1 >= len(parts) {
 					fmt.Println("Error: No file given")
 				}
+
+				redirectStdError = parts[i] == ErrorRedirect
 
 				lastIdx = i
 				fileName = strings.Join(parts[(i+1):], " ")
@@ -51,6 +54,7 @@ func main() {
 		}
 
 		output := ""
+		errOutput := ""
 
 		switch parts[0] {
 		case Exit:
@@ -58,11 +62,11 @@ func main() {
 		case Echo:
 			output = strings.Join(parts[1:], " ")
 		case Type:
-			output = checkCommand(parts[1])
+			output, errOutput = checkCommand(parts[1])
 		case Pwd:
-			output = getPresentWorkingDirectory()
+			output, errOutput = getPresentWorkingDirectory()
 		case Cd:
-			changeDirectory(parts[1])
+			errOutput = changeDirectory(parts[1])
 		default:
 			_, err := exec.LookPath(parts[0])
 			if err != nil {
@@ -72,11 +76,11 @@ func main() {
 
 			cmd := exec.Command(parts[0], parts[1:]...)
 			cmd.Stdin = os.Stdin
-			cmd.Stderr = os.Stderr
 
 			var outFile *os.File
 			if fileName == "" {
 				cmd.Stdout = os.Stdout
+				cmd.Stderr = os.Stderr
 			} else {
 				var err error
 				outFile, err = os.OpenFile(
@@ -89,7 +93,13 @@ func main() {
 					continue
 				}
 
-				cmd.Stdout = outFile
+				if redirectStdError {
+					cmd.Stdout = os.Stdout
+					cmd.Stderr = outFile
+				} else {
+					cmd.Stdout = outFile
+					cmd.Stderr = os.Stderr
+				}
 			}
 
 			execErr := cmd.Run()
@@ -107,22 +117,38 @@ func main() {
 			continue
 		}
 
-		writeOutput(fileName, output)
+		writeOutput(fileName, output, errOutput, redirectStdError)
 	}
 }
 
-func writeOutput(fileName string, output string) {
-	if output == "" {
+func writeOutput(fileName string, output string, errOutput string, redirectStdError bool) {
+	if output == "" && errOutput == "" {
+		return
+	}
+
+	if redirectStdError {
+		write(errOutput, fileName)
+		write(output, "")
+
+	} else {
+		write(output, fileName)
+		write(errOutput, "")
+	}
+}
+
+func write(data string, fileName string) {
+	if data == "" {
 		return
 	}
 
 	if fileName == "" {
-		fmt.Println(output)
-	} else {
-		err := os.WriteFile(fileName, []byte(output+"\n"), 0644)
-		if err != nil {
-			fmt.Println(err)
-		}
+		fmt.Println(data)
+		return
+	}
+
+	err := os.WriteFile(fileName, []byte(data+"\n"), 0644)
+	if err != nil {
+		fmt.Println(err)
 	}
 }
 
@@ -191,17 +217,16 @@ func getTokens(input string) ([]string, error) {
 	return tokens, nil
 }
 
-func getPresentWorkingDirectory() string {
+func getPresentWorkingDirectory() (string, string) {
 	path, err := os.Getwd()
 	if err != nil {
-		fmt.Println(err.Error())
-		return ""
+		return "", err.Error()
 	}
 
-	return path
+	return path, ""
 }
 
-func changeDirectory(path string) {
+func changeDirectory(path string) string {
 	if path == HomeDirectory {
 		home, _ := os.UserHomeDir()
 		path = home
@@ -209,20 +234,21 @@ func changeDirectory(path string) {
 
 	err := os.Chdir(path)
 	if err != nil {
-		fmt.Println(path + ": No such file or directory")
+		return path + ": No such file or directory"
 	}
+
+	return ""
 }
 
-func checkCommand(input string) string {
+func checkCommand(input string) (string, string) {
 	if slices.Contains(commands, input) {
-		return input + " is a shell builtin"
+		return input + " is a shell builtin", ""
 	}
 
 	path, err := exec.LookPath(input)
 	if err == nil {
-		return input + " is " + path
+		return input + " is " + path, ""
 	}
 
-	fmt.Println(input + ": not found")
-	return ""
+	return "", input + ": not found"
 }
