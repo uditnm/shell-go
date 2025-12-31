@@ -99,7 +99,8 @@ mainloop:
 		}
 
 		writeOutput(fileName, output, errOutput, redirectStdError)
-		fmt.Print("\r\n$ ")
+		fmt.Println()
+		fmt.Print("$ ")
 	}
 }
 
