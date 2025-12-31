@@ -114,7 +114,7 @@ func writeOutput(fileName string, output string) {
 	if fileName == "" {
 		fmt.Println(output)
 	} else {
-		err := os.WriteFile(fileName, []byte(output), 0644)
+		err := os.WriteFile(fileName, []byte(output+"\n"), 0644)
 		if err != nil {
 			fmt.Println(err)
 		}
