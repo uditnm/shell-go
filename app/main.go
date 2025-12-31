@@ -108,8 +108,6 @@ func main() {
 				outFile.Close()
 			}
 
-			fmt.Println()
-
 			if execErr != nil {
 				if _, ok := execErr.(*exec.ExitError); !ok {
 					fmt.Println("Execution error: ", execErr)
