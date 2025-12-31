@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -14,12 +15,13 @@ var _ = fmt.Print
 func main() {
 	reader := bufio.NewReader(os.Stdin)
 
+mainloop:
 	for {
 		fmt.Print("$ ")
 		input, err := reader.ReadString('\n')
 
 		if err != nil {
-			fmt.Println("Error reading command:", err)
+			fmt.Print("Error reading command:", err)
 			continue
 		}
 
@@ -28,7 +30,7 @@ func main() {
 		parts, quoteErr := getTokens(input)
 
 		if quoteErr != nil {
-			fmt.Println("Error reading command:", quoteErr)
+			fmt.Print("Error reading command:", quoteErr)
 			continue
 		}
 
@@ -38,7 +40,8 @@ func main() {
 		for i := 1; i < len(parts); i++ {
 			if parts[i] == Redirect || parts[i] == StandardRedirect || parts[i] == ErrorRedirect {
 				if i+1 >= len(parts) {
-					fmt.Println("Error: No file given")
+					fmt.Print("Error: No file given")
+					continue mainloop
 				}
 
 				redirectStdError = parts[i] == ErrorRedirect
@@ -70,51 +73,60 @@ func main() {
 		default:
 			_, err := exec.LookPath(parts[0])
 			if err != nil {
-				fmt.Println(parts[0] + ": command not found")
-				continue
+				errOutput = parts[0] + ": command not found"
+				break
 			}
+
+			var stderrBuf, stdoutBuf bytes.Buffer
 
 			cmd := exec.Command(parts[0], parts[1:]...)
 			cmd.Stdin = os.Stdin
+			cmd.Stdout = &stdoutBuf
+			cmd.Stderr = &stderrBuf
 
-			var outFile *os.File
-			if fileName == "" {
-				cmd.Stdout = os.Stdout
-				cmd.Stderr = os.Stderr
-			} else {
-				var err error
-				outFile, err = os.OpenFile(
-					fileName,
-					os.O_CREATE|os.O_WRONLY|os.O_TRUNC,
-					0644,
-				)
-				if err != nil {
-					fmt.Println("failed to open output file: ", err)
-					continue
-				}
-
-				if redirectStdError {
+			/*
+				var outFile *os.File
+				if fileName == "" {
 					cmd.Stdout = os.Stdout
-					cmd.Stderr = outFile
-				} else {
-					cmd.Stdout = outFile
 					cmd.Stderr = os.Stderr
+				} else {
+					var err error
+					outFile, err = os.OpenFile(
+						fileName,
+						os.O_CREATE|os.O_WRONLY|os.O_TRUNC,
+						0644,
+					)
+					if err != nil {
+						errOutput = "failed to open output file: " + err.Error()
+						break
+					}
+
+					if redirectStdError {
+						cmd.Stdout = os.Stdout
+						cmd.Stderr = errorOut
+					} else {
+						cmd.Stdout = outFile
+						cmd.Stderr = os.Stderr
+					}
 				}
-			}
+
+				execErr := cmd.Run()
+
+				if outFile != nil {
+					outFile.Close()
+				}*/
 
 			execErr := cmd.Run()
 
-			if outFile != nil {
-				outFile.Close()
-			}
+			output = stdoutBuf.String()
+			errOutput = stderrBuf.String()
 
 			if execErr != nil {
 				if _, ok := execErr.(*exec.ExitError); !ok {
-					fmt.Println("Execution error: ", execErr)
+					fmt.Println("Execution error: " + execErr.Error())
+					continue
 				}
 			}
-
-			continue
 		}
 
 		writeOutput(fileName, output, errOutput, redirectStdError)
@@ -137,17 +149,21 @@ func writeOutput(fileName string, output string, errOutput string, redirectStdEr
 			fmt.Println(errOutput)
 		}
 	}
+
+	if !strings.HasSuffix(output, "\n") && !strings.HasSuffix(errOutput, "\n") && fileName == "" {
+		fmt.Println()
+	}
 }
 
 func write(data string, fileName string) {
 	if fileName == "" {
-		fmt.Println(data)
+		fmt.Print(data)
 		return
 	}
 
 	err := os.WriteFile(fileName, []byte(data), 0644)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Print(err)
 	}
 }
 
