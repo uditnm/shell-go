@@ -108,35 +108,41 @@ func writeOutput(fileName string, output string, errOutput string, redirectStdEr
 		return
 	}
 
+	isWritten := false
+
 	if redirectStdError {
-		write(errOutput, fileName)
+		isWritten = write(errOutput, fileName)
 		if output != "" {
+			isWritten = true
 			fmt.Print(output)
 		}
 	} else {
-		write(output, fileName)
+		isWritten = write(output, fileName)
 		if errOutput != "" {
+			isWritten = true
 			fmt.Print(errOutput)
 		}
 	}
 
-	if strings.HasSuffix(output, "\n") || strings.HasSuffix(errOutput, "\n") {
+	if strings.HasSuffix(output, "\n") || strings.HasSuffix(errOutput, "\n") || !isWritten {
 		return
 	}
 
 	fmt.Println()
 }
 
-func write(data string, fileName string) {
+func write(data string, fileName string) bool {
 	if fileName == "" {
 		fmt.Print(data)
-		return
+		return true
 	}
 
 	err := os.WriteFile(fileName, []byte(data), 0644)
 	if err != nil {
 		fmt.Print(err)
+		return true
 	}
+	return false
 }
 
 func getTokens(input string) ([]string, error) {
