@@ -137,10 +137,6 @@ func writeOutput(fileName string, output string, errOutput string, redirectStdEr
 }
 
 func write(data string, fileName string) {
-	if data == "" {
-		return
-	}
-
 	if fileName == "" {
 		fmt.Println(data)
 		return
