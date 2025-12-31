@@ -71,14 +71,15 @@ func main() {
 			}
 
 			cmd := exec.Command(parts[0], parts[1:]...)
-			cmd.Args = parts
 			cmd.Stdin = os.Stdin
 			cmd.Stderr = os.Stderr
 
+			var outFile *os.File
 			if fileName == "" {
 				cmd.Stdout = os.Stdout
 			} else {
-				outFile, err := os.OpenFile(
+				var err error
+				outFile, err = os.OpenFile(
 					fileName,
 					os.O_CREATE|os.O_WRONLY|os.O_TRUNC,
 					0644,
@@ -87,12 +88,16 @@ func main() {
 					fmt.Println("failed to open output file: ", err)
 					continue
 				}
-				defer outFile.Close()
 
 				cmd.Stdout = outFile
 			}
 
 			execErr := cmd.Run()
+
+			if outFile != nil {
+				outFile.Close()
+			}
+
 			if execErr != nil {
 				if _, ok := execErr.(*exec.ExitError); !ok {
 					fmt.Println("Execution error: ", execErr)
