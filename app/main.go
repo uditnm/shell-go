@@ -13,22 +13,16 @@ import (
 var _ = fmt.Print
 
 func main() {
-	lastEndedWithNewline := true
 	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("$ ")
 
 mainloop:
 	for {
-		if !lastEndedWithNewline {
-			fmt.Println()
-			lastEndedWithNewline = true
-		}
-		fmt.Print("$ ")
-		lastEndedWithNewline = false
 
 		input, err := reader.ReadString('\n')
 
 		if err != nil {
-			writeToTerminal("Error reading command: "+err.Error(), &lastEndedWithNewline)
+			fmt.Print("Error reading command:", err)
 			continue
 		}
 
@@ -37,7 +31,7 @@ mainloop:
 		parts, quoteErr := getTokens(input)
 
 		if quoteErr != nil {
-			writeToTerminal("Error reading command: "+quoteErr.Error(), &lastEndedWithNewline)
+			fmt.Print("Error reading command:", quoteErr)
 			continue
 		}
 
@@ -47,7 +41,7 @@ mainloop:
 		for i := 1; i < len(parts); i++ {
 			if parts[i] == Redirect || parts[i] == StandardRedirect || parts[i] == ErrorRedirect {
 				if i+1 >= len(parts) {
-					writeToTerminal("Error: No file given", &lastEndedWithNewline)
+					fmt.Print("Error: No file given")
 					continue mainloop
 				}
 
@@ -98,51 +92,44 @@ mainloop:
 
 			if execErr != nil {
 				if _, ok := execErr.(*exec.ExitError); !ok {
-					writeToTerminal("Execution error: "+execErr.Error(), &lastEndedWithNewline)
+					fmt.Println("Execution error: " + execErr.Error())
 					continue
 				}
 			}
 		}
 
-		writeOutput(fileName, output, errOutput, redirectStdError, &lastEndedWithNewline)
+		writeOutput(fileName, output, errOutput, redirectStdError)
+		fmt.Print("\r\n$ ")
 	}
 }
 
-func writeOutput(
-	fileName string,
-	output string,
-	errOutput string,
-	redirectStdError bool,
-	lastEndedWithNewline *bool,
-) {
-	if redirectStdError {
-		if fileName != "" {
-			os.WriteFile(fileName, []byte(errOutput), 0644)
-		} else {
-			writeToTerminal(errOutput, lastEndedWithNewline)
-		}
-		writeToTerminal(output, lastEndedWithNewline)
-	} else {
-		if fileName != "" {
-			os.WriteFile(fileName, []byte(output), 0644)
-		} else {
-			writeToTerminal(output, lastEndedWithNewline)
-		}
-		writeToTerminal(errOutput, lastEndedWithNewline)
-	}
-}
-
-func writeToTerminal(s string, lastEndedWithNewline *bool) {
-	if s == "" {
+func writeOutput(fileName string, output string, errOutput string, redirectStdError bool) {
+	if output == "" && errOutput == "" {
 		return
 	}
 
-	fmt.Print(s)
-
-	if strings.HasSuffix(s, "\n") {
-		*lastEndedWithNewline = true
+	if redirectStdError {
+		write(errOutput, fileName)
+		if output != "" {
+			fmt.Print(output)
+		}
 	} else {
-		*lastEndedWithNewline = false
+		write(output, fileName)
+		if errOutput != "" {
+			fmt.Print(errOutput)
+		}
+	}
+}
+
+func write(data string, fileName string) {
+	if fileName == "" {
+		fmt.Print(data)
+		return
+	}
+
+	err := os.WriteFile(fileName, []byte(data), 0644)
+	if err != nil {
+		fmt.Print(err)
 	}
 }
 
