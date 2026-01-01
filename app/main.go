@@ -14,11 +14,10 @@ var _ = fmt.Print
 
 func main() {
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("$ ")
 
 mainloop:
 	for {
-
+		fmt.Print("$ ")
 		input, err := reader.ReadString('\n')
 
 		if err != nil {
@@ -38,14 +37,16 @@ mainloop:
 		fileName := ""
 		lastIdx := -1
 		redirectStdError := false
+		appendOutput := false
 		for i := 1; i < len(parts); i++ {
-			if parts[i] == Redirect || parts[i] == StandardRedirect || parts[i] == ErrorRedirect {
+			if slices.Contains(RedirectOutputCommands(), parts[i]) {
 				if i+1 >= len(parts) {
 					fmt.Print("Error: No file given")
 					continue mainloop
 				}
 
 				redirectStdError = parts[i] == ErrorRedirect
+				appendOutput = parts[i] == OutputAppend || parts[i] == StandardOutputAppend
 
 				lastIdx = i
 				fileName = strings.Join(parts[(i+1):], " ")
@@ -78,6 +79,7 @@ mainloop:
 				break
 			}
 
+			//writing output to a buffer
 			var stderrBuf, stdoutBuf bytes.Buffer
 
 			cmd := exec.Command(parts[0], parts[1:]...)
@@ -98,50 +100,66 @@ mainloop:
 			}
 		}
 
-		writeOutput(fileName, output, errOutput, redirectStdError)
-		fmt.Print("$ ")
+		writeOutput(fileName, output, errOutput, redirectStdError, appendOutput)
 	}
 }
 
-func writeOutput(fileName string, output string, errOutput string, redirectStdError bool) {
+func writeOutput(fileName string, output string, errOutput string, redirectStdError bool, appendOutput bool) {
 	if output == "" && errOutput == "" {
 		return
 	}
 
-	isWritten := false
+	isWrittenToTerminal := false
 
 	if redirectStdError {
-		isWritten = write(errOutput, fileName)
+		isWrittenToTerminal = write(errOutput, fileName, appendOutput)
 		if output != "" {
-			isWritten = true
+			isWrittenToTerminal = true
 			fmt.Print(output)
 		}
 	} else {
-		isWritten = write(output, fileName)
+		isWrittenToTerminal = write(output, fileName, appendOutput)
 		if errOutput != "" {
-			isWritten = true
+			isWrittenToTerminal = true
 			fmt.Print(errOutput)
 		}
 	}
 
-	if strings.HasSuffix(output, "\n") || strings.HasSuffix(errOutput, "\n") || !isWritten {
+	if strings.HasSuffix(output, "\n") || strings.HasSuffix(errOutput, "\n") || !isWrittenToTerminal {
 		return
 	}
 
 	fmt.Println()
 }
 
-func write(data string, fileName string) bool {
+func write(data string, fileName string, appendOutput bool) bool {
 	if fileName == "" {
 		fmt.Print(data)
 		return true
 	}
 
-	err := os.WriteFile(fileName, []byte(data), 0644)
+	writeMode := os.O_TRUNC
+	if appendOutput {
+		writeMode = os.O_APPEND
+	}
+
+	file, err := os.OpenFile(fileName,
+		writeMode|os.O_CREATE|os.O_WRONLY,
+		0644,
+	)
+
 	if err != nil {
 		fmt.Print(err)
 		return true
 	}
+	defer file.Close()
+
+	_, writeErr := file.WriteString(data)
+	if writeErr != nil {
+		fmt.Print(writeErr)
+		return true
+	}
+
 	return false
 }
 
@@ -234,7 +252,7 @@ func changeDirectory(path string) string {
 }
 
 func checkCommand(input string) (string, string) {
-	if slices.Contains(commands, input) {
+	if slices.Contains(Commands(), input) {
 		return input + " is a shell builtin", ""
 	}
 
