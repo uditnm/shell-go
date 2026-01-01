@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"slices"
@@ -45,8 +46,8 @@ mainloop:
 					continue mainloop
 				}
 
-				redirectStdError = parts[i] == ErrorRedirect
-				appendOutput = parts[i] == OutputAppend || parts[i] == StandardOutputAppend
+				redirectStdError = parts[i] == ErrorRedirect || parts[i] == ErrorAppend
+				appendOutput = parts[i] == OutputAppend || parts[i] == StandardOutputAppend || parts[i] == ErrorAppend
 
 				lastIdx = i
 				fileName = strings.Join(parts[(i+1):], " ")
@@ -154,10 +155,18 @@ func write(data string, fileName string, appendOutput bool) bool {
 	}
 	defer file.Close()
 
+	//extra logic to make sure append is in newline
 	if appendOutput {
-		info, _ := file.Stat()
+		rf, _ := os.Open(fileName)
+		defer rf.Close()
+		info, _ := rf.Stat()
 		if info.Size() > 0 {
-			data = "\n" + data
+			rf.Seek(-1, io.SeekEnd)
+			b := make([]byte, 1)
+			rf.Read(b)
+			if b[0] != '\n' {
+				data = "\n" + data
+			}
 		}
 	}
 
