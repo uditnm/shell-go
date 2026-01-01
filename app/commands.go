@@ -12,10 +12,11 @@ const (
 	StandardRedirect     = "1>"
 	OutputAppend         = ">>"
 	StandardOutputAppend = "1>>"
+	ErrorAppend          = "2>>"
 )
 
 var commands = []string{Exit, Echo, Type, Pwd, Cd}
-var redirectOutputCommands = []string{Redirect, ErrorRedirect, StandardRedirect, OutputAppend, StandardOutputAppend}
+var redirectOutputCommands = []string{Redirect, ErrorRedirect, StandardRedirect, OutputAppend, StandardOutputAppend, ErrorAppend}
 
 func Commands() []string {
 	out := make([]string, len(commands))
