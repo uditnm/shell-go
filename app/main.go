@@ -154,7 +154,7 @@ func write(data string, fileName string, appendOutput bool) bool {
 	}
 	defer file.Close()
 
-	if !strings.HasSuffix(data, "\n") {
+	if appendOutput && !strings.HasSuffix(data, "\n") {
 		data = data + "\n"
 	}
 
